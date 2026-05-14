@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welly Go — Conversor de Menú</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --green:#1a8c56;--green-dark:#0d6b40;--green-light:#e6f5ee;
+    --cream:#f7f5f0;--text:#1a1a1a;--muted:#6b7280;--border:#e5e7eb;--white:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+  .nav-brand{display:flex;align-items:center;gap:10px;}
+  .nav-logo{width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px;}
+  .nav-name{font-size:15px;font-weight:600;letter-spacing:-0.3px;}
+  .nav-tag{font-size:11px;background:var(--green-light);color:var(--green-dark);padding:3px 10px;border-radius:20px;font-weight:500;}
+  main{flex:1;max-width:760px;margin:0 auto;width:100%;padding:3rem 1.5rem 4rem;}
+  h1{font-size:26px;font-weight:600;letter-spacing:-0.7px;margin-bottom:6px;}
+  .subtitle{font-size:14px;color:var(--muted);margin-bottom:2rem;line-height:1.5;}
+  .card{background:var(--white);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:1.25rem;}
+  .card-body{padding:1.5rem;}
+  .drop-zone{border:2px dashed var(--border);border-radius:12px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--cream);}
+  .drop-zone:hover,.drop-zone.over{border-color:var(--green);background:var(--green-light);}
+  .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .drop-icon{font-size:34px;display:block;margin-bottom:10px;}
+  .drop-title{font-size:15px;font-weight:500;margin-bottom:4px;}
+  .drop-sub{font-size:13px;color:var(--muted);}
+  .drop-sub span{color:var(--green);font-weight:500;}
+  .file-pill{display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #9fe0c0;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;}
+  .file-pill .name{font-weight:500;color:var(--green-dark);flex:1;}
+  .file-pill .remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0;}
+  .file-pill .remove:hover{color:#dc2626;}
+  .convert-btn{width:100%;padding:14px;background:var(--green);color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-0.2px;}
+  .convert-btn:hover:not(:disabled){background:var(--green-dark);transform:translateY(-1px);}
+  .convert-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none;}
+  #progressSection{display:none;background:var(--white);border-radius:16px;border:1px solid var(--border);padding:2rem 1.5rem;margin-bottom:1.25rem;text-align:center;}
+  .spinner{width:44px;height:44px;border:3px solid var(--green-light);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .prog-label{font-size:14px;font-weight:500;margin-bottom:4px;}
+  .prog-sub{font-size:12px;color:var(--muted);}
+  #errorBox{display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:1rem 1.25rem;font-size:13px;color:#991b1b;margin-bottom:1.25rem;}
+  #resultSection{display:none;background:var(--white);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:1.25rem;}
+  .result-head{padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .result-head h2{font-size:14px;font-weight:600;}
+  .chips{display:flex;gap:6px;}
+  .chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--green-light);color:var(--green-dark);}
+  .chip.amber{background:#fef3c7;color:#92400e;}
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);}
+  .stat-item{padding:.9rem;text-align:center;border-right:1px solid var(--border);}
+  .stat-item:last-child{border-right:none;}
+  .stat-num{font-size:20px;font-weight:600;color:var(--green);letter-spacing:-0.5px;display:block;}
+  .stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;display:block;}
+  .warn-item{display:flex;align-items:flex-start;gap:8px;padding:9px 1.5rem;border-bottom:1px solid #fef3c7;background:#fffbeb;font-size:12px;color:#78350f;}
+  .table-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
+  thead th{background:#f9fafb;padding:8px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);position:sticky;top:0;white-space:nowrap;}
+  tbody td{padding:7px 12px;border-bottom:1px solid #f3f4f6;vertical-align:top;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  tbody tr:hover td{background:#f9fafb;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+  .badge.si{background:var(--green-light);color:var(--green-dark);}
+  .badge.no{background:#f3f4f6;color:#6b7280;}
+  .dl-bar{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:#f9fafb;}
+  .dl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent;}
+  .dl-btn.primary{background:var(--green);color:white;}
+  .dl-btn.primary:hover{background:var(--green-dark);}
+  .dl-btn.secondary{background:white;color:var(--text);border-color:var(--border);}
+  .dl-btn.secondary:hover{background:var(--cream);}
+  .mod-section{padding:1rem 1.5rem;border-top:1px solid var(--border);}
+  .mod-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;}
+  .mod-group{margin-bottom:10px;}
+  .mod-group-name{font-size:13px;font-weight:500;margin-bottom:5px;}
+  .mod-tags{display:flex;flex-wrap:wrap;gap:5px;}
+  .mod-tag{font-size:11px;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:3px 9px;}
+  .mono{font-family:'DM Mono',monospace;}
+  footer{text-align:center;padding:1.5rem;font-size:12px;color:var(--muted);border-top:1px solid var(--border);background:var(--white);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">.W.</div>
+    <span class="nav-name">WellyGo</span>
+  </div>
+  <span class="nav-tag">Herramienta interna — Onboarding</span>
+</nav>
+
+<main>
+  <h1>Conversor de menú</h1>
+  <p class="subtitle">Subí el Excel que nos envió el aliado y descargá el template listo para subir al admin.</p>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+        <span class="drop-icon">📋</span>
+        <p class="drop-title">Arrastrá el archivo del aliado acá</p>
+        <p class="drop-sub">o <span>hacé clic para buscar</span> — .xlsx, .xls, .csv</p>
+      </div>
+      <div id="filePill" style="display:none" class="file-pill">
+        <span>📄</span>
+        <span class="name" id="fileName"></span>
+        <button class="remove" onclick="clearFile()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="convert-btn" id="convertBtn" onclick="runConvert()" disabled>
+    <span>✦</span> Convertir menú
+  </button>
+
+  <div id="errorBox"></div>
+
+  <div id="progressSection">
+    <div class="spinner"></div>
+    <p class="prog-label" id="progLabel">Leyendo el archivo...</p>
+    <p class="prog-sub" id="progSub">Esto tarda unos segundos</p>
+  </div>
+
+  <div id="resultSection">
+    <div class="result-head">
+      <h2>Template generado</h2>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+    <div id="warningsBox"></div>
+    <div class="table-scroll" id="tableContainer"></div>
+    <div id="modifiersSection"></div>
+    <div class="dl-bar">
+      <button class="dl-btn primary" onclick="downloadXLSX()">⬇ Descargar template .xlsx</button>
+      <button class="dl-btn secondary" onclick="copyCSV()">📋 Copiar CSV</button>
+      <span id="copyFb" style="font-size:12px;color:var(--green);display:none">¡Copiado!</span>
+    </div>
+  </div>
+</main>
+
+<footer>WellyGo · Herramienta interna de onboarding</footer>
+
+<script>
+let parsedData = null, fileContent = null, fileName = '';
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  fileName = file.name;
+  document.getElementById('filePill').style.display = 'flex';
+  document.getElementById('fileName').textContent = file.name;
+  dropZone.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => { fileContent = e.target.result; checkReady(); };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearFile() {
+  fileContent = null; fileInput.value = '';
+  document.getElementById('filePill').style.display = 'none';
+  dropZone.style.display = 'block';
+  checkReady();
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function checkReady() {
+  document.getElementById('convertBtn').disabled = !fileContent;
+}
+
+function parseXLSX(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  let out = '';
+  for (const sh of wb.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sh], { header:1, defval:'' });
+    out += `\n[Hoja: ${sh}]\n`;
+    for (const row of rows) {
+      const line = row.map(c => String(c).trim()).join(' | ');
+      if (line.replace(/\|/g,'').trim()) out += line + '\n';
+    }
+  }
+  return out;
+}
+
+async function runConvert() {
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;animation:spin .8s linear infinite;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;width:16px;height:16px"></span> Procesando...';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('progressSection').style.display = 'block';
+  setP('Leyendo el archivo Excel...', 'Extrayendo datos del menú');
+
+  let menuText = '';
+  try { menuText = parseXLSX(fileContent); }
+  catch(e) { showErr('No se pudo leer el archivo. Asegurate de que sea un .xlsx o .xls válido.'); resetBtn(btn); return; }
+
+  setP('Interpretando el menú con IA...', 'Normalizando nombres, precios y categorías');
+
+  const system = `Eres un asistente especializado en procesar menús de restaurantes para WellyGo (delivery saludable LATAM).
+
+Transformá el contenido dado al formato EXACTO del template admin de WellyGo.
+
+COLUMNAS (orden exacto):
+1. Nombre del Plato — máx 5 palabras, primera letra mayúscula, sin símbolos ni emojis
+2. Descripción — ingredientes, peso. Si no hay, generá una breve basada en el nombre
+3. Precio — número entero sin símbolo
+4. Activo — "Sí" o "No"
+5. Celiaco — "Sí" o "No"
+6. Descuento — número (0 si no aplica)
+7. Categorías — separadas por coma. Inferir: Panificados, Bebidas, Postres, Platos principales, Ensaladas, Snacks, Desayunos, Helados, etc.
+8. Vegetariano — "Sí" o "No"
+9. Vegano — "Sí" o "No"
+10. Sin Gluten — "Sí" o "No"
+11. Saludable — "Sí" o "No" (sin tacc/fit/vegano/orgánico/sin azúcar = Sí)
+12. Gustos o Sabores — opciones por coma, o vacío
+13. Limite de gustos o sabores — número o vacío
+14. Agregá extras al plato — "Nombre:precio, Nombre2:precio2" o vacío
+
+REGLAS:
+- "sin tacc"/"sin TACC" → Celiaco=Sí, Sin Gluten=Sí, Saludable=Sí
+- Vegano → también Vegetariano=Sí
+- Normalizar precios: quitar puntos/comas de miles
+- Gustos listados → columna 12
+- Modificadores/adicionales → separar en sección aparte
+- NO incluir encabezados ni filas vacías
+- Incluir TODOS los productos, aunque falte info
+
+Responde SOLO con JSON válido, sin texto ni markdown:
+{"productos":[{"nombre":"","descripcion":"","precio":0,"activo":"Sí","celiaco":"No","descuento":0,"categorias":"","vegetariano":"No","vegano":"No","sin_gluten":"No","saludable":"No","gustos":"","limite_gustos":"","extras":""}],"modificadores":[{"grupo":"","opciones":[{"nombre":"","precio":0}]}],"advertencias":[]}`;
+
+  const userMsg = `CONTENIDO DEL ARCHIVO:\n${menuText}\n\nProcesá todos los productos y devolvé el JSON.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system, messages:[{role:'user',content:userMsg}] })
+    });
+    setP('Construyendo el template...', 'Armando filas y validando campos');
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content?.[0]?.text || '';
+    parsedData = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    document.getElementById('progressSection').style.display = 'none';
+    renderResult(parsedData);
+    resetBtn(btn);
+  } catch(e) {
+    document.getElementById('progressSection').style.display = 'none';
+    showErr('Error: ' + e.message + '. Intentá de nuevo.');
+    resetBtn(btn);
+  }
+}
+
+function setP(l, s) {
+  document.getElementById('progLabel').textContent = l;
+  document.getElementById('progSub').textContent = s;
+}
+function resetBtn(btn) { btn.disabled = false; btn.innerHTML = '<span>✦</span> Convertir menú'; checkReady(); }
+function showErr(msg) { const b = document.getElementById('errorBox'); b.style.display = 'block'; b.textContent = '⚠ ' + msg; }
+
+function renderResult(data) {
+  const rows = data.productos || [], mods = data.modificadores || [], warns = data.advertencias || [];
+  document.getElementById('resultSection').style.display = 'block';
+  const cats = [...new Set(rows.map(r => r.categorias).filter(Boolean))];
+  document.getElementById('chips').innerHTML =
+    `<span class="chip">${rows.length} productos</span><span class="chip">${cats.length} categorías</span>${warns.length?`<span class="chip amber">${warns.length} advertencias</span>`:''}`;
+  const sg = rows.filter(r=>r.sin_gluten==='Sí').length;
+  const sal = rows.filter(r=>r.saludable==='Sí').length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item"><span class="stat-num">${rows.length}</span><span class="stat-lbl">Productos</span></div>
+    <div class="stat-item"><span class="stat-num">${cats.length}</span><span class="stat-lbl">Categorías</span></div>
+    <div class="stat-item"><span class="stat-num">${sg}</span><span class="stat-lbl">Sin gluten</span></div>
+    <div class="stat-item"><span class="stat-num">${sal}</span><span class="stat-lbl">Saludables</span></div>`;
+  document.getElementById('warningsBox').innerHTML = warns.map(w=>`<div class="warn-item"><span>⚠</span>${w}</div>`).join('');
+  const cols = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos/Sabores','Límite','Extras'];
+  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const bools = ['activo','celiaco','vegetariano','vegano','sin_gluten','saludable'];
+  document.getElementById('tableContainer').innerHTML = `<table>
+    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${keys.map(k=>{
+      const v = r[k]!=null?String(r[k]):'';
+      if(bools.includes(k)) return `<td><span class="badge ${v==='Sí'?'si':'no'}">${v||'No'}</span></td>`;
+      if(k==='precio') return `<td class="mono">${Number(v).toLocaleString()}</td>`;
+      return `<td title="${v}">${v}</td>`;
+    }).join('')}</tr>`).join('')}</tbody></table>`;
+  if (mods.length) {
+    document.getElementById('modifiersSection').innerHTML = `<div class="mod-section">
+      <p class="mod-title">Modificadores detectados</p>
+      ${mods.map(m=>`<div class="mod-group"><p class="mod-group-name">${m.grupo}</p>
+        <div class="mod-tags">${(m.opciones||[]).map(o=>`<span class="mod-tag">${o.nombre}${o.precio?' +'+Number(o.precio).toLocaleString():''}</span>`).join('')}</div>
+      </div>`).join('')}</div>`;
+  }
+}
+
+function downloadXLSX() {
+  if (!parsedData) return;
+  const rows = parsedData.productos || [];
+  const headers = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
+  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const wsData = [headers, ...rows.map(r=>keys.map(k=>{
+    const v=r[k]; if(v===''||v==null) return '';
+    if(['precio','descuento','limite_gustos'].includes(k)) return Number(v)||v;
+    return v;
+  }))];
+  const wb2 = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [20,35,10,8,8,10,20,12,8,10,10,25,10,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb2, ws, 'Productos');
+  if (parsedData.modificadores?.length) {
+    const modData = [['Grupo de adicionales','Opciones','Precio']];
+    for (const m of parsedData.modificadores) {
+      (m.opciones||[]).forEach((o,i)=>modData.push([i===0?m.grupo:'',o.nombre,o.precio||0]));
+      modData.push(['','','']);
+    }
+    const wsM = XLSX.utils.aoa_to_sheet(modData);
+    wsM['!cols'] = [25,25,10].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb2, wsM, 'Modificadores');
+  }
+  const safe = (fileName||'menu').replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_');
+  XLSX.writeFile(wb2, `welly_template_${safe}.xlsx`);
+}
+
+function copyCSV() {
+  if (!parsedData) return;
+  const rows = parsedData.productos||[];
+  const headers = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
+  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const csv = [headers.join(','),...rows.map(r=>keys.map(k=>{const v=r[k]!=null?String(r[k]):'';return v.includes(',')||v.includes('"')?`"${v.replace(/"/g,'""')}"`:v;}).join(','))].join('\n');
+  navigator.clipboard.writeText(csv).then(()=>{
+    const fb=document.getElementById('copyFb');fb.style.display='inline';setTimeout(()=>fb.style.display='none',2000);
+  });
+}
+</script>
+</body>
+</html>
