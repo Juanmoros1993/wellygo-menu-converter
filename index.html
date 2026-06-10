@@ -21,6 +21,10 @@
   main{flex:1;max-width:760px;margin:0 auto;width:100%;padding:3rem 1.5rem 4rem;}
   h1{font-size:26px;font-weight:600;letter-spacing:-0.7px;margin-bottom:6px;}
   .subtitle{font-size:14px;color:var(--muted);margin-bottom:2rem;line-height:1.5;}
+  .tabs{display:flex;gap:0;margin-bottom:1.25rem;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:4px;}
+  .tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-radius:9px;transition:all .2s;color:var(--muted);border:none;background:none;font-family:'DM Sans',sans-serif;}
+  .tab.active{background:var(--green);color:white;}
+  .tab:hover:not(.active){background:var(--cream);color:var(--text);}
   .card{background:var(--white);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:1.25rem;}
   .card-body{padding:1.5rem;}
   .drop-zone{border:2px dashed var(--border);border-radius:12px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--cream);}
@@ -31,9 +35,11 @@
   .drop-sub{font-size:13px;color:var(--muted);}
   .drop-sub span{color:var(--green);font-weight:500;}
   .file-pill{display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #9fe0c0;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;}
-  .file-pill .name{font-weight:500;color:var(--green-dark);flex:1;}
-  .file-pill .remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0;}
+  .file-pill .name{font-weight:500;color:var(--green-dark);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-pill .remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0;flex-shrink:0;}
   .file-pill .remove:hover{color:#dc2626;}
+  .img-preview{margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border);max-height:300px;display:flex;align-items:center;justify-content:center;background:#000;}
+  .img-preview img{max-width:100%;max-height:300px;object-fit:contain;}
   .convert-btn{width:100%;padding:14px;background:var(--green);color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-0.2px;}
   .convert-btn:hover:not(:disabled){background:var(--green-dark);transform:translateY(-1px);}
   .convert-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none;}
@@ -46,7 +52,7 @@
   #resultSection{display:none;background:var(--white);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:1.25rem;}
   .result-head{padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .result-head h2{font-size:14px;font-weight:600;}
-  .chips{display:flex;gap:6px;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
   .chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--green-light);color:var(--green-dark);}
   .chip.amber{background:#fef3c7;color:#92400e;}
   .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);}
@@ -63,7 +69,7 @@
   .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;}
   .badge.si{background:var(--green-light);color:var(--green-dark);}
   .badge.no{background:#f3f4f6;color:#6b7280;}
-  .dl-bar{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:#f9fafb;}
+  .dl-bar{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:#f9fafb;flex-wrap:wrap;}
   .dl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent;}
   .dl-btn.primary{background:var(--green);color:white;}
   .dl-btn.primary:hover{background:var(--green-dark);}
@@ -80,6 +86,7 @@
 </style>
 </head>
 <body>
+
 <nav>
   <div class="nav-brand">
     <div class="nav-logo">.W.</div>
@@ -90,20 +97,48 @@
 
 <main>
   <h1>Conversor de menú</h1>
-  <p class="subtitle">Subí el Excel que nos envió el aliado y descargá el template listo para subir al admin.</p>
+  <p class="subtitle">Subí el archivo o la foto del menú del aliado y descargá el template listo para subir al admin.</p>
 
-  <div class="card">
-    <div class="card-body">
-      <div class="drop-zone" id="dropZone">
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-        <span class="drop-icon">📋</span>
-        <p class="drop-title">Arrastrá el archivo del aliado acá</p>
-        <p class="drop-sub">o <span>hacé clic para buscar</span> — .xlsx, .xls, .csv</p>
+  <div class="tabs">
+    <button class="tab active" id="tab-excel" onclick="switchTab('excel')">📋 Archivo Excel / CSV</button>
+    <button class="tab" id="tab-image" onclick="switchTab('image')">📷 Foto de menú</button>
+  </div>
+
+  <div id="panel-excel">
+    <div class="card">
+      <div class="card-body">
+        <div class="drop-zone" id="dropZoneExcel">
+          <input type="file" id="fileInputExcel" accept=".xlsx,.xls,.csv">
+          <span class="drop-icon">📋</span>
+          <p class="drop-title">Arrastrá el archivo del aliado acá</p>
+          <p class="drop-sub">o <span>hacé clic para buscar</span> — .xlsx, .xls, .csv</p>
+        </div>
+        <div id="filePillExcel" style="display:none" class="file-pill">
+          <span>📄</span>
+          <span class="name" id="fileNameExcel"></span>
+          <button class="remove" onclick="clearExcel()">✕</button>
+        </div>
       </div>
-      <div id="filePill" style="display:none" class="file-pill">
-        <span>📄</span>
-        <span class="name" id="fileName"></span>
-        <button class="remove" onclick="clearFile()">✕</button>
+    </div>
+  </div>
+
+  <div id="panel-image" style="display:none">
+    <div class="card">
+      <div class="card-body">
+        <div class="drop-zone" id="dropZoneImage">
+          <input type="file" id="fileInputImage" accept="image/*">
+          <span class="drop-icon">📷</span>
+          <p class="drop-title">Arrastrá la foto del menú acá</p>
+          <p class="drop-sub">o <span>hacé clic para buscar</span> — JPG, PNG, WEBP</p>
+        </div>
+        <div id="filePillImage" style="display:none" class="file-pill">
+          <span>🖼️</span>
+          <span class="name" id="fileNameImage"></span>
+          <button class="remove" onclick="clearImage()">✕</button>
+        </div>
+        <div id="imgPreview" class="img-preview" style="display:none">
+          <img id="imgPreviewEl" src="" alt="Preview del menú">
+        </div>
       </div>
     </div>
   </div>
@@ -116,7 +151,7 @@
 
   <div id="progressSection">
     <div class="spinner"></div>
-    <p class="prog-label" id="progLabel">Leyendo el archivo...</p>
+    <p class="prog-label" id="progLabel">Procesando...</p>
     <p class="prog-sub" id="progSub">Esto tarda unos segundos</p>
   </div>
 
@@ -140,37 +175,47 @@
 <footer>WellyGo · Herramienta interna de onboarding</footer>
 
 <script>
-let parsedData = null, fileContent = null, fileName = '';
+const WORKER_URL = 'https://welly-api.juandanielmoros.workers.dev';
 
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
+let parsedData = null, currentTab = 'excel';
+let excelContent = null, excelFileName = '';
+let imageBase64 = null, imageMediaType = '', imageFileName = '';
 
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', e => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panel-excel').style.display = tab === 'excel' ? 'block' : 'none';
+  document.getElementById('panel-image').style.display = tab === 'image' ? 'block' : 'none';
+  document.getElementById('tab-excel').className = 'tab' + (tab === 'excel' ? ' active' : '');
+  document.getElementById('tab-image').className = 'tab' + (tab === 'image' ? ' active' : '');
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  checkReady();
+}
 
-function handleFile(file) {
-  fileName = file.name;
-  document.getElementById('filePill').style.display = 'flex';
-  document.getElementById('fileName').textContent = file.name;
-  dropZone.style.display = 'none';
+// EXCEL
+const dropZoneExcel = document.getElementById('dropZoneExcel');
+const fileInputExcel = document.getElementById('fileInputExcel');
+dropZoneExcel.addEventListener('dragover', e => { e.preventDefault(); dropZoneExcel.classList.add('over'); });
+dropZoneExcel.addEventListener('dragleave', () => dropZoneExcel.classList.remove('over'));
+dropZoneExcel.addEventListener('drop', e => { e.preventDefault(); dropZoneExcel.classList.remove('over'); if(e.dataTransfer.files[0]) handleExcel(e.dataTransfer.files[0]); });
+fileInputExcel.addEventListener('change', e => { if(e.target.files[0]) handleExcel(e.target.files[0]); });
+
+function handleExcel(file) {
+  excelFileName = file.name;
+  document.getElementById('filePillExcel').style.display = 'flex';
+  document.getElementById('fileNameExcel').textContent = file.name;
+  dropZoneExcel.style.display = 'none';
   const reader = new FileReader();
-  reader.onload = e => { fileContent = e.target.result; checkReady(); };
+  reader.onload = e => { excelContent = e.target.result; checkReady(); };
   reader.readAsArrayBuffer(file);
 }
 
-function clearFile() {
-  fileContent = null; fileInput.value = '';
-  document.getElementById('filePill').style.display = 'none';
-  dropZone.style.display = 'block';
-  checkReady();
+function clearExcel() {
+  excelContent = null; fileInputExcel.value = '';
+  document.getElementById('filePillExcel').style.display = 'none';
+  dropZoneExcel.style.display = 'block';
   document.getElementById('resultSection').style.display = 'none';
-  document.getElementById('errorBox').style.display = 'none';
-}
-
-function checkReady() {
-  document.getElementById('convertBtn').disabled = !fileContent;
+  checkReady();
 }
 
 function parseXLSX(buffer) {
@@ -187,6 +232,77 @@ function parseXLSX(buffer) {
   return out;
 }
 
+// IMAGE
+const dropZoneImage = document.getElementById('dropZoneImage');
+const fileInputImage = document.getElementById('fileInputImage');
+dropZoneImage.addEventListener('dragover', e => { e.preventDefault(); dropZoneImage.classList.add('over'); });
+dropZoneImage.addEventListener('dragleave', () => dropZoneImage.classList.remove('over'));
+dropZoneImage.addEventListener('drop', e => { e.preventDefault(); dropZoneImage.classList.remove('over'); if(e.dataTransfer.files[0]) handleImage(e.dataTransfer.files[0]); });
+fileInputImage.addEventListener('change', e => { if(e.target.files[0]) handleImage(e.target.files[0]); });
+
+function handleImage(file) {
+  imageFileName = file.name;
+  imageMediaType = file.type || 'image/jpeg';
+  document.getElementById('filePillImage').style.display = 'flex';
+  document.getElementById('fileNameImage').textContent = file.name;
+  dropZoneImage.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    imageBase64 = dataUrl.split(',')[1];
+    document.getElementById('imgPreview').style.display = 'flex';
+    document.getElementById('imgPreviewEl').src = dataUrl;
+    checkReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  imageBase64 = null; fileInputImage.value = '';
+  document.getElementById('filePillImage').style.display = 'none';
+  dropZoneImage.style.display = 'block';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  checkReady();
+}
+
+function checkReady() {
+  const hasContent = currentTab === 'excel' ? !!excelContent : !!imageBase64;
+  document.getElementById('convertBtn').disabled = !hasContent;
+}
+
+const SYSTEM = `Eres un asistente especializado en procesar menús de restaurantes para WellyGo (delivery saludable LATAM).
+
+Transformá el contenido dado al formato EXACTO del template admin de WellyGo.
+
+COLUMNAS (orden exacto):
+1. Nombre del Plato — máx 5 palabras, primera letra mayúscula, sin símbolos ni emojis
+2. Descripción — ingredientes, peso. Si no hay, generá una breve basada en el nombre
+3. Precio — número entero sin símbolo de moneda
+4. Activo — "Sí" o "No"
+5. Celiaco — "Sí" o "No"
+6. Descuento — número (0 si no aplica)
+7. Categorías — separadas por coma. Inferir: Hamburguesas, Bebidas, Postres, Platos principales, Ensaladas, Snacks, Panificados, Helados, etc.
+8. Vegetariano — "Sí" o "No"
+9. Vegano — "Sí" o "No"
+10. Sin Gluten — "Sí" o "No"
+11. Saludable — "Sí" o "No"
+12. Gustos o Sabores — opciones por coma, o vacío
+13. Limite de gustos o sabores — número o vacío
+14. Agregá extras al plato — "Nombre:precio, Nombre2:precio2" o vacío
+
+REGLAS:
+- Si un plato tiene variantes (Simple/Doble/Triple) → crear una fila por variante con su precio
+- "sin tacc"/"sin TACC" → Celiaco=Sí, Sin Gluten=Sí, Saludable=Sí
+- Vegano → también Vegetariano=Sí
+- Normalizar precios: quitar puntos/comas de miles, solo número
+- Extras/adicionales → columna 14 y en sección modificadores
+- NO incluir encabezados ni filas vacías
+- Incluir TODOS los productos aunque falte info
+
+Responde SOLO con JSON válido, sin texto ni markdown:
+{"productos":[{"nombre":"","descripcion":"","precio":0,"activo":"Sí","celiaco":"No","descuento":0,"categorias":"","vegetariano":"No","vegano":"No","sin_gluten":"No","saludable":"No","gustos":"","limite_gustos":"","extras":""}],"modificadores":[{"grupo":"","opciones":[{"nombre":"","precio":0}]}],"advertencias":[]}`;
+
 async function runConvert() {
   const btn = document.getElementById('convertBtn');
   btn.disabled = true;
@@ -194,57 +310,36 @@ async function runConvert() {
   document.getElementById('resultSection').style.display = 'none';
   document.getElementById('errorBox').style.display = 'none';
   document.getElementById('progressSection').style.display = 'block';
-  setP('Leyendo el archivo Excel...', 'Extrayendo datos del menú');
 
-  let menuText = '';
-  try { menuText = parseXLSX(fileContent); }
-  catch(e) { showErr('No se pudo leer el archivo. Asegurate de que sea un .xlsx o .xls válido.'); resetBtn(btn); return; }
+  let messages;
 
-  setP('Interpretando el menú con IA...', 'Normalizando nombres, precios y categorías');
-
-  const system = `Eres un asistente especializado en procesar menús de restaurantes para WellyGo (delivery saludable LATAM).
-
-Transformá el contenido dado al formato EXACTO del template admin de WellyGo.
-
-COLUMNAS (orden exacto):
-1. Nombre del Plato — máx 5 palabras, primera letra mayúscula, sin símbolos ni emojis
-2. Descripción — ingredientes, peso. Si no hay, generá una breve basada en el nombre
-3. Precio — número entero sin símbolo
-4. Activo — "Sí" o "No"
-5. Celiaco — "Sí" o "No"
-6. Descuento — número (0 si no aplica)
-7. Categorías — separadas por coma. Inferir: Panificados, Bebidas, Postres, Platos principales, Ensaladas, Snacks, Desayunos, Helados, etc.
-8. Vegetariano — "Sí" o "No"
-9. Vegano — "Sí" o "No"
-10. Sin Gluten — "Sí" o "No"
-11. Saludable — "Sí" o "No" (sin tacc/fit/vegano/orgánico/sin azúcar = Sí)
-12. Gustos o Sabores — opciones por coma, o vacío
-13. Limite de gustos o sabores — número o vacío
-14. Agregá extras al plato — "Nombre:precio, Nombre2:precio2" o vacío
-
-REGLAS:
-- "sin tacc"/"sin TACC" → Celiaco=Sí, Sin Gluten=Sí, Saludable=Sí
-- Vegano → también Vegetariano=Sí
-- Normalizar precios: quitar puntos/comas de miles
-- Gustos listados → columna 12
-- Modificadores/adicionales → separar en sección aparte
-- NO incluir encabezados ni filas vacías
-- Incluir TODOS los productos, aunque falte info
-
-Responde SOLO con JSON válido, sin texto ni markdown:
-{"productos":[{"nombre":"","descripcion":"","precio":0,"activo":"Sí","celiaco":"No","descuento":0,"categorias":"","vegetariano":"No","vegano":"No","sin_gluten":"No","saludable":"No","gustos":"","limite_gustos":"","extras":""}],"modificadores":[{"grupo":"","opciones":[{"nombre":"","precio":0}]}],"advertencias":[]}`;
-
-  const userMsg = `CONTENIDO DEL ARCHIVO:\n${menuText}\n\nProcesá todos los productos y devolvé el JSON.`;
+  if (currentTab === 'excel') {
+    setP('Leyendo el archivo Excel...', 'Extrayendo datos del menú');
+    let menuText = '';
+    try { menuText = parseXLSX(excelContent); }
+    catch(e) { showErr('No se pudo leer el archivo.'); resetBtn(btn); return; }
+    setP('Interpretando con IA...', 'Normalizando nombres, precios y categorías');
+    messages = [{ role:'user', content: `CONTENIDO DEL ARCHIVO:\n${menuText}\n\nProcesá todos los productos y devolvé el JSON.` }];
+  } else {
+    setP('Analizando la imagen...', 'La IA está leyendo productos y precios');
+    messages = [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
+        { type: 'text', text: 'Leé todos los productos, precios, extras y bebidas de esta imagen de menú. Procesá todo y devolvé el JSON.' }
+      ]
+    }];
+  }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system, messages:[{role:'user',content:userMsg}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system: SYSTEM, messages })
     });
     setP('Construyendo el template...', 'Armando filas y validando campos');
     const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     const raw = data.content?.[0]?.text || '';
     parsedData = JSON.parse(raw.replace(/```json|```/g,'').trim());
     document.getElementById('progressSection').style.display = 'none';
@@ -257,81 +352,78 @@ Responde SOLO con JSON válido, sin texto ni markdown:
   }
 }
 
-function setP(l, s) {
-  document.getElementById('progLabel').textContent = l;
-  document.getElementById('progSub').textContent = s;
-}
-function resetBtn(btn) { btn.disabled = false; btn.innerHTML = '<span>✦</span> Convertir menú'; checkReady(); }
-function showErr(msg) { const b = document.getElementById('errorBox'); b.style.display = 'block'; b.textContent = '⚠ ' + msg; }
+function setP(l,s){ document.getElementById('progLabel').textContent=l; document.getElementById('progSub').textContent=s; }
+function resetBtn(btn){ btn.disabled=false; btn.innerHTML='<span>✦</span> Convertir menú'; checkReady(); }
+function showErr(msg){ const b=document.getElementById('errorBox'); b.style.display='block'; b.textContent='⚠ '+msg; }
 
 function renderResult(data) {
-  const rows = data.productos || [], mods = data.modificadores || [], warns = data.advertencias || [];
-  document.getElementById('resultSection').style.display = 'block';
-  const cats = [...new Set(rows.map(r => r.categorias).filter(Boolean))];
-  document.getElementById('chips').innerHTML =
+  const rows=data.productos||[], mods=data.modificadores||[], warns=data.advertencias||[];
+  document.getElementById('resultSection').style.display='block';
+  const cats=[...new Set(rows.map(r=>r.categorias).filter(Boolean))];
+  document.getElementById('chips').innerHTML=
     `<span class="chip">${rows.length} productos</span><span class="chip">${cats.length} categorías</span>${warns.length?`<span class="chip amber">${warns.length} advertencias</span>`:''}`;
-  const sg = rows.filter(r=>r.sin_gluten==='Sí').length;
-  const sal = rows.filter(r=>r.saludable==='Sí').length;
-  document.getElementById('statsBar').innerHTML = `
+  const sg=rows.filter(r=>r.sin_gluten==='Sí').length, sal=rows.filter(r=>r.saludable==='Sí').length;
+  document.getElementById('statsBar').innerHTML=`
     <div class="stat-item"><span class="stat-num">${rows.length}</span><span class="stat-lbl">Productos</span></div>
     <div class="stat-item"><span class="stat-num">${cats.length}</span><span class="stat-lbl">Categorías</span></div>
     <div class="stat-item"><span class="stat-num">${sg}</span><span class="stat-lbl">Sin gluten</span></div>
     <div class="stat-item"><span class="stat-num">${sal}</span><span class="stat-lbl">Saludables</span></div>`;
-  document.getElementById('warningsBox').innerHTML = warns.map(w=>`<div class="warn-item"><span>⚠</span>${w}</div>`).join('');
-  const cols = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos/Sabores','Límite','Extras'];
-  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
-  const bools = ['activo','celiaco','vegetariano','vegano','sin_gluten','saludable'];
-  document.getElementById('tableContainer').innerHTML = `<table>
+  document.getElementById('warningsBox').innerHTML=warns.map(w=>`<div class="warn-item"><span>⚠</span>${w}</div>`).join('');
+  const cols=['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos/Sabores','Límite','Extras'];
+  const keys=['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const bools=['activo','celiaco','vegetariano','vegano','sin_gluten','saludable'];
+  document.getElementById('tableContainer').innerHTML=`<table>
     <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(r=>`<tr>${keys.map(k=>{
-      const v = r[k]!=null?String(r[k]):'';
+      const v=r[k]!=null?String(r[k]):'';
       if(bools.includes(k)) return `<td><span class="badge ${v==='Sí'?'si':'no'}">${v||'No'}</span></td>`;
       if(k==='precio') return `<td class="mono">${Number(v).toLocaleString()}</td>`;
       return `<td title="${v}">${v}</td>`;
     }).join('')}</tr>`).join('')}</tbody></table>`;
-  if (mods.length) {
-    document.getElementById('modifiersSection').innerHTML = `<div class="mod-section">
+  if(mods.length){
+    document.getElementById('modifiersSection').innerHTML=`<div class="mod-section">
       <p class="mod-title">Modificadores detectados</p>
       ${mods.map(m=>`<div class="mod-group"><p class="mod-group-name">${m.grupo}</p>
         <div class="mod-tags">${(m.opciones||[]).map(o=>`<span class="mod-tag">${o.nombre}${o.precio?' +'+Number(o.precio).toLocaleString():''}</span>`).join('')}</div>
       </div>`).join('')}</div>`;
-  }
+  } else { document.getElementById('modifiersSection').innerHTML=''; }
 }
 
 function downloadXLSX() {
-  if (!parsedData) return;
-  const rows = parsedData.productos || [];
-  const headers = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
-  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
-  const wsData = [headers, ...rows.map(r=>keys.map(k=>{
+  if(!parsedData) return;
+  const rows=parsedData.productos||[];
+  const headers=['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
+  const keys=['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const wsData=[headers,...rows.map(r=>keys.map(k=>{
     const v=r[k]; if(v===''||v==null) return '';
     if(['precio','descuento','limite_gustos'].includes(k)) return Number(v)||v;
     return v;
   }))];
-  const wb2 = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [20,35,10,8,8,10,20,12,8,10,10,25,10,30].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb2, ws, 'Productos');
-  if (parsedData.modificadores?.length) {
-    const modData = [['Grupo de adicionales','Opciones','Precio']];
-    for (const m of parsedData.modificadores) {
+  const wb2=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[20,35,10,8,8,10,20,12,8,10,10,25,10,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb2,ws,'Productos');
+  if(parsedData.modificadores?.length){
+    const modData=[['Grupo de adicionales','Opciones','Precio']];
+    for(const m of parsedData.modificadores){
       (m.opciones||[]).forEach((o,i)=>modData.push([i===0?m.grupo:'',o.nombre,o.precio||0]));
       modData.push(['','','']);
     }
-    const wsM = XLSX.utils.aoa_to_sheet(modData);
-    wsM['!cols'] = [25,25,10].map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb2, wsM, 'Modificadores');
+    const wsM=XLSX.utils.aoa_to_sheet(modData);
+    wsM['!cols']=[25,25,10].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb2,wsM,'Modificadores');
   }
-  const safe = (fileName||'menu').replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_');
-  XLSX.writeFile(wb2, `welly_template_${safe}.xlsx`);
+  const src=currentTab==='excel'?excelFileName:imageFileName;
+  const safe=(src||'menu').replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_');
+  XLSX.writeFile(wb2,`welly_template_${safe}.xlsx`);
 }
 
-function copyCSV() {
-  if (!parsedData) return;
-  const rows = parsedData.productos||[];
-  const headers = ['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
-  const keys = ['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
-  const csv = [headers.join(','),...rows.map(r=>keys.map(k=>{const v=r[k]!=null?String(r[k]):'';return v.includes(',')||v.includes('"')?`"${v.replace(/"/g,'""')}"`:v;}).join(','))].join('\n');
+function copyCSV(){
+  if(!parsedData) return;
+  const rows=parsedData.productos||[];
+  const headers=['Nombre del Plato','Descripción','Precio','Activo','Celiaco','Descuento','Categorías','Vegetariano','Vegano','Sin Gluten','Saludable','Gustos o Sabores','Limite de gustos o sabores','Agregá extras al plato'];
+  const keys=['nombre','descripcion','precio','activo','celiaco','descuento','categorias','vegetariano','vegano','sin_gluten','saludable','gustos','limite_gustos','extras'];
+  const csv=[headers.join(','),...rows.map(r=>keys.map(k=>{const v=r[k]!=null?String(r[k]):'';return v.includes(',')||v.includes('"')?`"${v.replace(/"/g,'""')}"`:v;}).join(','))].join('\n');
   navigator.clipboard.writeText(csv).then(()=>{
     const fb=document.getElementById('copyFb');fb.style.display='inline';setTimeout(()=>fb.style.display='none',2000);
   });
